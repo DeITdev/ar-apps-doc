@@ -123,3 +123,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Minimalist scrollbar styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(0 0% 50% / 0.3) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 50% / 0.3);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 50% / 0.5);
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 70% / 0.2);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 70% / 0.4);
+}
