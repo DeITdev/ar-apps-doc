@@ -14,9 +14,21 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { ModeToggle } from "@/components/mode-toggle"
 import { useDoc } from "@/contexts/doc-context"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { CodeTabs } from "@/components/ui/code-tabs"
+import { TableOfContents } from "@/components/ui/toc"
+import { cn, slugify } from "@/lib/utils"
 
 function DashboardContent() {
   const { activeDoc, activeParent, activeSection } = useDoc()
@@ -25,7 +37,7 @@ function DashboardContent() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header className="sticky top-0 z-10 bg-background flex h-16 shrink-0 items-center justify-between gap-2 border-b px-3 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -55,20 +67,33 @@ function DashboardContent() {
           </div>
           <ModeToggle />
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
+        <div className="flex flex-1 gap-6 p-6">
+          <div className="flex-1 prose prose-neutral dark:prose-invert max-w-none">
             {activeSection?.content ? (
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
-                  h1: ({ children }) => (
-                    <h1 className="text-3xl font-bold tracking-tight mb-4">{children}</h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="text-2xl font-semibold tracking-tight mt-8 mb-4">{children}</h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-xl font-semibold tracking-tight mt-6 mb-3">{children}</h3>
-                  ),
+                  h1: ({ children }) => {
+                    const text = String(children)
+                    const id = slugify(text)
+                    return (
+                      <h1 id={id} className="text-3xl font-bold tracking-tight mb-4">{children}</h1>
+                    )
+                  },
+                  h2: ({ children }) => {
+                    const text = String(children)
+                    const id = slugify(text)
+                    return (
+                      <h2 id={id} className="text-2xl font-semibold tracking-tight mt-8 mb-4">{children}</h2>
+                    )
+                  },
+                  h3: ({ children }) => {
+                    const text = String(children)
+                    const id = slugify(text)
+                    return (
+                      <h3 id={id} className="text-xl font-semibold tracking-tight mt-6 mb-3">{children}</h3>
+                    )
+                  },
                   p: ({ children }) => (
                     <p className="leading-7 [&:not(:first-child)]:mt-4">{children}</p>
                   ),
@@ -78,8 +103,28 @@ function DashboardContent() {
                   ol: ({ children }) => (
                     <ol className="my-4 ml-6 list-decimal [&>li]:mt-2">{children}</ol>
                   ),
+
+                  img: ({ className, ...props }) => (
+                    <img className={cn("rounded-xl border mb-6", className)} {...props} />
+                  ),
                   code: ({ className, children, ...props }) => {
                     const isInline = !className
+                    const isCodeTabs = className?.includes("language-codetabs")
+
+                    if (isCodeTabs) {
+                      try {
+                        const codes = JSON.parse(String(children).trim())
+                        return <CodeTabs codes={codes} className="my-6" />
+                      } catch (e) {
+                        console.error("Failed to parse codetabs", e)
+                        return (
+                          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                            Error parsing code tabs
+                          </div>
+                        )
+                      }
+                    }
+
                     if (isInline) {
                       return (
                         <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm" {...props}>
@@ -93,21 +138,41 @@ function DashboardContent() {
                       </code>
                     )
                   },
-                  pre: ({ children }) => (
-                    <pre className="mb-4 mt-4 overflow-x-auto rounded-lg bg-muted p-4">
-                      {children}
-                    </pre>
-                  ),
+                  pre: ({ children, node, ...props }) => {
+                    // Check if this pre contains a codetabs code block
+                    const codeElement = node?.children?.[0]
+                    if (codeElement?.type === 'element' && codeElement?.tagName === 'code') {
+                      const className = codeElement.properties?.className
+                      if (Array.isArray(className) && className.some((c) => String(c).includes('language-codetabs'))) {
+                        // Return children directly without pre wrapper
+                        return <>{children}</>
+                      }
+                    }
+                    return (
+                      <pre className="mb-4 mt-4 overflow-x-auto rounded-lg bg-muted p-4" {...props}>
+                        {children}
+                      </pre>
+                    )
+                  },
                   table: ({ children }) => (
-                    <div className="my-6 w-full overflow-y-auto">
-                      <table className="w-full">{children}</table>
+                    <div className="my-6">
+                      <Table>{children}</Table>
                     </div>
                   ),
+                  thead: ({ children }) => (
+                    <TableHeader>{children}</TableHeader>
+                  ),
+                  tbody: ({ children }) => (
+                    <TableBody>{children}</TableBody>
+                  ),
+                  tr: ({ children }) => (
+                    <TableRow>{children}</TableRow>
+                  ),
                   th: ({ children }) => (
-                    <th className="border px-4 py-2 text-left font-bold">{children}</th>
+                    <TableHead>{children}</TableHead>
                   ),
                   td: ({ children }) => (
-                    <td className="border px-4 py-2">{children}</td>
+                    <TableCell>{children}</TableCell>
                   ),
                   blockquote: ({ children }) => (
                     <blockquote className="mt-6 border-l-2 pl-6 italic">{children}</blockquote>
@@ -122,6 +187,13 @@ function DashboardContent() {
               </div>
             )}
           </div>
+          {activeSection?.content && (
+            <aside className="hidden xl:block w-64 shrink-0">
+              <div className="sticky top-20">
+                <TableOfContents content={activeSection.content} />
+              </div>
+            </aside>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>
@@ -131,3 +203,4 @@ function DashboardContent() {
 export default function Page() {
   return <DashboardContent />
 }
+
