@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -29,7 +31,9 @@ import remarkGfm from "remark-gfm"
 import { CodeTabs } from "@/components/ui/code-tabs"
 import { CopyButton } from "@/components/ui/copy-button"
 import { TableOfContents } from "@/components/ui/toc"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { cn, slugify } from "@/lib/utils"
+import { Info, AlertTriangle, Flame, CircleAlert, Lightbulb } from "lucide-react"
 
 function DashboardContent() {
   const { activeDoc, activeParent, activeSection } = useDoc()
@@ -106,7 +110,7 @@ function DashboardContent() {
                   ),
 
                   img: ({ className, ...props }) => (
-                    <img className={cn("rounded-xl border mb-6", className)} {...props} />
+                    <img className={cn("rounded-xl border mb-6 max-w-full h-auto", className)} {...props} />
                   ),
                   code: ({ className, children, ...props }) => {
                     const isInline = !className
@@ -194,9 +198,66 @@ function DashboardContent() {
                   td: ({ children }) => (
                     <TableCell>{children}</TableCell>
                   ),
-                  blockquote: ({ children }) => (
-                    <blockquote className="mt-6 border-l-2 pl-6 italic">{children}</blockquote>
-                  ),
+                  blockquote: ({ children }) => {
+                    // Extract text content from children to detect alert type
+                    const extractTextContent = (node: React.ReactNode): string => {
+                      if (typeof node === 'string') return node
+                      if (Array.isArray(node)) return node.map(extractTextContent).join('')
+                      if (React.isValidElement(node)) {
+                        const props = node.props as { children?: React.ReactNode }
+                        if (props.children) return extractTextContent(props.children)
+                      }
+                      return ''
+                    }
+                    const text = extractTextContent(children)
+                    const alertMatch = text.match(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i)
+
+                    if (alertMatch) {
+                      const type = alertMatch[1].toLowerCase() as 'note' | 'tip' | 'important' | 'warning' | 'caution'
+                      const icons = {
+                        note: <Info className="h-4 w-4" />,
+                        tip: <Lightbulb className="h-4 w-4" />,
+                        important: <CircleAlert className="h-4 w-4" />,
+                        warning: <AlertTriangle className="h-4 w-4" />,
+                        caution: <Flame className="h-4 w-4" />,
+                      }
+                      const labels = {
+                        note: 'NOTE',
+                        tip: 'TIP',
+                        important: 'IMPORTANT',
+                        warning: 'WARNING',
+                        caution: 'CAUTION',
+                      }
+
+                      // Remove the [!TYPE] marker from the rendered content
+                      const cleanChildren = React.Children.map(children, (child) => {
+                        if (React.isValidElement(child)) {
+                          const props = child.props as { children?: React.ReactNode }
+                          if (props.children) {
+                            const childText = extractTextContent(child)
+                            if (childText.match(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i)) {
+                              const cleaned = childText.replace(/^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i, '')
+                              if (!cleaned.trim()) return null
+                              return <p className="leading-relaxed m-0">{cleaned}</p>
+                            }
+                          }
+                        }
+                        return child
+                      })?.filter(Boolean)
+
+                      return (
+                        <Alert variant={type} className="my-6">
+                          {icons[type]}
+                          <AlertTitle className="font-bold">{labels[type]}</AlertTitle>
+                          <AlertDescription>{cleanChildren}</AlertDescription>
+                        </Alert>
+                      )
+                    }
+
+                    return (
+                      <blockquote className="mt-6 border-l-2 pl-6 italic">{children}</blockquote>
+                    )
+                  },
                 }}
               >
                 {activeSection.content}

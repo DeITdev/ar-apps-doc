@@ -22,24 +22,31 @@ export const privateAiNavMain: NavItem[] = [
                 title: "Introduction",
                 url: "/dashboard?section=introduction",
                 isActive: true,
-                content: `# Private AI Chat with 3D Avatar & RAG
+                content: `![Thumbnail](/images/private-ai-image-thumbnail.png)
+
+# Private AI Chat with 3D Avatar & RAG
 
 A fully local AI chat application with 3D avatar visualization, voice interaction, and Retrieval-Augmented Generation (RAG) for document-based question answering.
 
 ## Features
 
-- 🤖 **Local AI Chat** - Runs completely offline using Ollama (Mistral 7B)
-- 🎭 **3D Avatar** - Interactive VRM model with lip-sync and blinking
-- 🎤 **Voice Input** - Speech-to-text using Whisper (local)
-- 🔊 **Voice Output** - Text-to-speech using MMS-TTS (Indonesian)
-- 📚 **RAG System** - Query PDF documents for accurate, context-aware responses
-- 💾 **Local Storage** - All data stored locally using IndexedDB
-- 🌙 **Dark Mode** - Built-in theme support`
+- **Local AI Chat** - Runs completely offline using Ollama (Mistral 7B)
+- **3D Avatar** - Interactive VRM model with lip-sync and blinking
+- **Voice Input** - Speech-to-text using Whisper (local)
+- **Voice Output** - Text-to-speech using MMS-TTS (Indonesian)
+- **RAG System** - Query PDF documents for accurate, context-aware responses
+- **Local Storage** - All data stored locally using IndexedDB
+- **Dark Mode** - Built-in theme support
+
+> [!NOTE]
+> This application runs entirely on your local machine. No data is sent to external servers, ensuring complete privacy and data security.`
             },
             {
                 title: "Architecture",
                 url: "/dashboard?section=architecture",
-                content: `# Architecture
+                content: `![System Architecture](/images/private-ai-image-system.png)
+
+# Architecture
 
 \`\`\`
 Frontend (React + TypeScript)
@@ -69,7 +76,10 @@ Frontend (React + TypeScript)
 
 1. **Node.js** (v18+) - For frontend
 2. **Python** (v3.10+) - For backend servers
-3. **Ollama** - For local LLM ([Download](https://ollama.ai))`
+3. **Ollama** - For local LLM ([Download](https://ollama.ai))
+
+> [!TIP]
+> For best performance, use a machine with a dedicated GPU. Ollama will automatically use CUDA if available, significantly improving response times.`
             },
         ],
     },

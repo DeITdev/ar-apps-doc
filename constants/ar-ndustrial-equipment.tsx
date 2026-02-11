@@ -40,7 +40,10 @@ export const arIndustrialNavMain: NavItem[] = [
 
 ## Purpose
 
-This application provides Augmented Reality visualization for industrial equipment, enabling technicians and trainees to view real-time SCADA data overlaid on 3D models of industrial systems.`
+This application provides Augmented Reality visualization for industrial equipment, enabling technicians and trainees to view real-time SCADA data overlaid on 3D models of industrial systems.
+
+> [!IMPORTANT]
+> This application requires a stable network connection to communicate with the SCADA backend. Ensure that the SCADA API endpoint is accessible from the device running the AR application.`
             },
             {
                 title: "Architecture",
@@ -73,7 +76,10 @@ This application provides Augmented Reality visualization for industrial equipme
 2. Open project in Unity (recommended version: 2022.3 LTS or later)
 3. Import required packages (see Installation section)
 4. Build for Android/iOS with AR support enabled
-5. Deploy to AR-capable device`
+5. Deploy to AR-capable device
+
+> [!WARNING]
+> Ensure your target device supports ARCore (Android) or ARKit (iOS). Not all devices are compatible with AR functionality. Check the official compatibility list before proceeding.`
             },
         ],
     },
