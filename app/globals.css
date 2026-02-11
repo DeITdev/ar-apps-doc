@@ -124,6 +124,11 @@
   }
 }
 
+/* Use a monospace font that properly aligns box-drawing characters (├ │ └ ─) */
+pre, pre code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+}
+
 /* Minimalist scrollbar styles */
 * {
   scrollbar-width: thin;
