@@ -21,56 +21,47 @@ export function CodeTabs({ codes, className }: CodeTabsProps) {
   const { resolvedTheme } = useTheme()
   const [value, setValue] = React.useState<string>(Object.keys(codes)[0] || "")
   const [highlightedCodes, setHighlightedCodes] = React.useState<Record<string, string>>({})
-
-  const themeRef = React.useRef(resolvedTheme)
   const keys = Object.keys(codes)
   const isSingleTab = keys.length === 1
+
+  const themeRef = React.useRef(resolvedTheme)
 
   React.useEffect(() => {
     themeRef.current = resolvedTheme
   }, [resolvedTheme])
 
+  // Format the code: replace literal \n with actual newlines
+  const formatCode = (code: string) => {
+    return code.replace(/\\n/g, "\n")
+  }
+
   React.useEffect(() => {
     let cancelled = false
 
-    async function loadHighlightedCode() {
+    async function highlight() {
       try {
         const { codeToHtml } = await import("shiki")
-        const newHighlightedCodes: Record<string, string> = {}
         const currentTheme = themeRef.current
+        const results: Record<string, string> = {}
 
-        const entries = Object.entries(codes)
-        const results = await Promise.all(
-          entries.map(async ([key, val]) => {
-            const highlighted = await codeToHtml(val, {
-              lang: "bash",
-              themes: {
-                light: "github-light",
-                dark: "github-dark",
-              },
-              defaultColor: currentTheme === "dark" ? "dark" : "light",
-            })
-            return [key, highlighted] as const
+        for (const [key, code] of Object.entries(codes)) {
+          const formatted = formatCode(code)
+          const html = await codeToHtml(formatted, {
+            lang: "bash",
+            theme: currentTheme === "dark" ? "github-dark" : "github-light",
           })
-        )
-
-        if (cancelled) return
-
-        for (const [key, highlighted] of results) {
-          newHighlightedCodes[key] = highlighted
+          results[key] = html
         }
 
-        requestAnimationFrame(() => {
-          if (!cancelled) {
-            setHighlightedCodes(newHighlightedCodes)
-          }
-        })
+        if (!cancelled) {
+          setHighlightedCodes(results)
+        }
       } catch (error) {
-        console.error("Error highlighting codes", error)
+        console.error("Shiki highlighting failed, using plain text:", error)
       }
     }
 
-    loadHighlightedCode()
+    highlight()
 
     return () => {
       cancelled = true
@@ -81,35 +72,45 @@ export function CodeTabs({ codes, className }: CodeTabsProps) {
     <Tabs
       value={value}
       onValueChange={setValue}
-      className={cn("w-full overflow-hidden rounded-lg bg-muted", className)}
+      className={cn(
+        "w-full overflow-hidden rounded-lg",
+        "bg-[#f6f8fa] dark:bg-[#1c2128]",
+        className
+      )}
     >
-      <div className="flex items-center justify-between px-4 py-2">
-        {!isSingleTab && (
+      {!isSingleTab && (
+        <div className="flex items-center border-b border-[#d1d9e0] dark:border-[#30363d] px-4 pt-2">
           <TabsList className="bg-transparent p-0 h-auto">
             {keys.map((key) => (
               <TabsTrigger
                 key={key}
                 value={key}
-                className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-2 pt-2 font-mono text-sm shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-2 pt-2 font-mono text-sm text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
               >
                 {key}
               </TabsTrigger>
             ))}
           </TabsList>
-        )}
-        {isSingleTab && <div />}
-        <CopyButton value={codes[value] || ""} />
-      </div>
+        </div>
+      )}
       {Object.entries(codes).map(([key, code]) => (
         <TabsContent key={key} value={key} className="mt-0">
-          <div className="px-4 pb-4 [&>pre]:m-0 [&>pre]:bg-transparent [&>pre]:p-0 [&_code]:bg-transparent">
+          <div className="relative">
+            <CopyButton
+              value={formatCode(code)}
+              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 z-10"
+            />
             {highlightedCodes[key] ? (
               <div
                 dangerouslySetInnerHTML={{ __html: highlightedCodes[key] }}
-                className="text-sm [&_pre]:bg-transparent [&_code]:bg-transparent"
+                className="overflow-x-auto [&_pre]:m-0 [&_pre]:p-4 [&_pre]:pr-12 [&_pre]:!bg-transparent [&_code]:!bg-transparent text-sm"
               />
             ) : (
-              <pre className="text-sm font-mono">{code}</pre>
+              <pre className="overflow-x-auto p-4 pr-12 m-0">
+                <code className="font-mono text-sm text-[#24292f] dark:text-[#c9d1d9] bg-transparent">
+                  {formatCode(code)}
+                </code>
+              </pre>
             )}
           </div>
         </TabsContent>

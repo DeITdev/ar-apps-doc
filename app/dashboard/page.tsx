@@ -27,6 +27,7 @@ import { useDoc } from "@/contexts/doc-context"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeTabs } from "@/components/ui/code-tabs"
+import { CopyButton } from "@/components/ui/copy-button"
 import { TableOfContents } from "@/components/ui/toc"
 import { cn, slugify } from "@/lib/utils"
 
@@ -148,10 +149,29 @@ function DashboardContent() {
                         return <>{children}</>
                       }
                     }
+
+                    // Extract text content for copy button
+                    const extractText = (node: unknown): string => {
+                      if (!node || typeof node !== 'object') return ''
+                      const n = node as { type?: string; value?: string; children?: unknown[] }
+                      if (n.type === 'text') return n.value || ''
+                      if (n.children) return n.children.map(extractText).join('')
+                      return ''
+                    }
+                    const textContent = node ? extractText(node) : ''
+
                     return (
-                      <pre className="mb-4 mt-4 overflow-x-auto rounded-lg bg-muted p-4" {...props}>
-                        {children}
-                      </pre>
+                      <div className="relative mb-4 mt-4 rounded-lg bg-[#f6f8fa] dark:bg-[#1c2128] overflow-hidden">
+                        {textContent && (
+                          <CopyButton
+                            value={textContent}
+                            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 z-10"
+                          />
+                        )}
+                        <pre className="overflow-x-auto p-4 pr-12 m-0 [&_code]:text-[#24292f] dark:[&_code]:text-[#c9d1d9] [&_code]:bg-transparent" {...props}>
+                          {children}
+                        </pre>
+                      </div>
                     )
                   },
                   table: ({ children }) => (
