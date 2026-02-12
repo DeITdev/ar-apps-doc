@@ -39,7 +39,11 @@ A fully local AI chat application with 3D avatar visualization, voice interactio
 - **Dark Mode** - Built-in theme support
 
 > [!NOTE]
-> This application runs entirely on your local machine. No data is sent to external servers, ensuring complete privacy and data security.`
+> This application runs entirely on your local machine. No data is sent to external servers, ensuring complete privacy and data security.
+
+\`\`\`youtube
+https://www.youtube.com/embed/NadR8KAh584?si=OUKP7mSzUcKqPPfS
+\`\`\``
             },
             {
                 title: "Architecture",

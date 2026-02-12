@@ -38,7 +38,11 @@ A comprehensive guide to the VR hand pose system used in the Savior project. Thi
 | **Animator-driven** | All poses are delivered as animation states inside an Animator Controller, blended together using a 2D Blend Tree driven by \`grip\` and \`trigger\` input values |
 
 > [!NOTE]
-> This system enables per-object custom hand animations in VR. When a player grabs an object, the hand model transitions from its default resting pose to a specific grasp pose that matches the shape of the object (e.g., gripping a wrench, holding a carabiner, pinching a small item).`
+> This system enables per-object custom hand animations in VR. When a player grabs an object, the hand model transitions from its default resting pose to a specific grasp pose that matches the shape of the object (e.g., gripping a wrench, holding a carabiner, pinching a small item).
+
+\`\`\`youtube
+https://www.youtube.com/embed/5rsHrYPRGOQ?si=1Atj6dKZYtwmRjX0
+\`\`\``
             },
             {
                 title: "Architecture",

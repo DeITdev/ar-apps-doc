@@ -32,6 +32,16 @@ import { CodeTabs } from "@/components/ui/code-tabs"
 import { CopyButton } from "@/components/ui/copy-button"
 import { TableOfContents } from "@/components/ui/toc"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import {
+  VideoPlayer,
+  VideoPlayerControlBar,
+  VideoPlayerPlayButton,
+  VideoPlayerTimeRange,
+  VideoPlayerTimeDisplay,
+  VideoPlayerMuteButton,
+  VideoPlayerVolumeRange,
+  VideoPlayerFullscreenButton,
+} from "@/components/ui/video-player"
 import { cn, slugify } from "@/lib/utils"
 import { Info, AlertTriangle, Flame, CircleAlert, Lightbulb } from "lucide-react"
 
@@ -130,6 +140,48 @@ function DashboardContent() {
                       }
                     }
 
+                    const isVideo = className?.includes("language-video")
+                    if (isVideo) {
+                      const src = String(children).trim()
+                      return (
+                        <div className="my-6">
+                          <VideoPlayer className="w-full rounded-lg overflow-hidden border">
+                            <video
+                              slot="media"
+                              src={src}
+                              suppressHydrationWarning
+                            />
+                            <VideoPlayerControlBar>
+                              <VideoPlayerPlayButton />
+                              <VideoPlayerTimeRange />
+                              <VideoPlayerTimeDisplay showDuration />
+                              <VideoPlayerMuteButton />
+                              <VideoPlayerVolumeRange />
+                              <VideoPlayerFullscreenButton />
+                            </VideoPlayerControlBar>
+                          </VideoPlayer>
+                        </div>
+                      )
+                    }
+
+                    const isYouTube = className?.includes("language-youtube")
+                    if (isYouTube) {
+                      const src = String(children).trim()
+                      return (
+                        <div className="my-6 relative w-full" style={{ paddingBottom: '56.25%' }}>
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full rounded-lg border"
+                            src={src}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            allowFullScreen
+                          />
+                        </div>
+                      )
+                    }
+
                     if (isInline) {
                       return (
                         <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm" {...props}>
@@ -144,11 +196,14 @@ function DashboardContent() {
                     )
                   },
                   pre: ({ children, node, ...props }) => {
-                    // Check if this pre contains a codetabs code block
+                    // Check if this pre contains a codetabs/video/youtube code block
                     const codeElement = node?.children?.[0]
                     if (codeElement?.type === 'element' && codeElement?.tagName === 'code') {
                       const className = codeElement.properties?.className
-                      if (Array.isArray(className) && className.some((c) => String(c).includes('language-codetabs'))) {
+                      if (Array.isArray(className) && className.some((c) => {
+                        const s = String(c)
+                        return s.includes('language-codetabs') || s.includes('language-video') || s.includes('language-youtube')
+                      })) {
                         // Return children directly without pre wrapper
                         return <>{children}</>
                       }

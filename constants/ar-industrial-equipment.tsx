@@ -43,7 +43,11 @@ export const arIndustrialNavMain: NavItem[] = [
 This application provides Augmented Reality visualization for industrial equipment, enabling technicians and trainees to view real-time SCADA data overlaid on 3D models of industrial systems.
 
 > [!IMPORTANT]
-> This application requires a stable network connection to communicate with the SCADA backend. Ensure that the SCADA API endpoint is accessible from the device running the AR application.`
+> This application requires a stable network connection to communicate with the SCADA backend. Ensure that the SCADA API endpoint is accessible from the device running the AR application.
+
+\`\`\`youtube
+https://www.youtube.com/embed/H9TvFkjY8oI?si=wES7LOWbdeh9mnd2
+\`\`\``
             },
             {
                 title: "Architecture",
