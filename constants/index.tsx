@@ -1,11 +1,13 @@
 import {
     Bot,
+    Hand,
     Layers,
     type LucideIcon,
 } from "lucide-react"
 
 import { privateAiNavMain } from "./private-ai"
-import { arIndustrialNavMain } from "./ar-ndustrial-equipment"
+import { arIndustrialNavMain } from "./ar-industrial-equipment"
+import { vrSaviorHandPoseNavMain } from "./vr-savior-hand-pose"
 
 // Navigation item type
 export type NavSubItem = {
@@ -43,9 +45,16 @@ export const documentations: Documentation[] = [
     },
     {
         id: "ar-app",
-        name: "AR Application",
+        name: "AR Industrial Equipment",
         version: "v1.0.0",
         logo: Layers,
         navMain: arIndustrialNavMain,
+    },
+    {
+        id: "vr-savior-hand-pose",
+        name: "VR Savior Hand Pose",
+        version: "v1.0.0",
+        logo: Hand,
+        navMain: vrSaviorHandPoseNavMain,
     },
 ]

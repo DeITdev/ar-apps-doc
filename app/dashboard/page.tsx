@@ -73,7 +73,7 @@ function DashboardContent() {
           <ModeToggle />
         </header>
         <div className="flex flex-1 gap-6 p-6">
-          <div className="flex-1 prose prose-neutral dark:prose-invert max-w-none">
+          <div className="flex-1 min-w-0 prose prose-neutral dark:prose-invert max-w-none">
             {activeSection?.content ? (
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -179,7 +179,7 @@ function DashboardContent() {
                     )
                   },
                   table: ({ children }) => (
-                    <div className="my-6">
+                    <div className="my-6 overflow-x-auto">
                       <Table>{children}</Table>
                     </div>
                   ),
