@@ -37,6 +37,13 @@ export type Documentation = {
 // List of available documentations with their navigation
 export const documentations: Documentation[] = [
     {
+        id: "vr-savior-hand-pose",
+        name: "VR Savior Hand Pose",
+        version: "v1.0.0",
+        logo: Hand,
+        navMain: vrSaviorHandPoseNavMain,
+    },
+    {
         id: "private-ai",
         name: "Private AI Assistant",
         version: "v1.0.0",
@@ -49,12 +56,5 @@ export const documentations: Documentation[] = [
         version: "v1.0.0",
         logo: Layers,
         navMain: arIndustrialNavMain,
-    },
-    {
-        id: "vr-savior-hand-pose",
-        name: "VR Savior Hand Pose",
-        version: "v1.0.0",
-        logo: Hand,
-        navMain: vrSaviorHandPoseNavMain,
     },
 ]
