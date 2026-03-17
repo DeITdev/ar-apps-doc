@@ -8,7 +8,7 @@ A comprehensive guide to the VR hand pose system used in the Savior project. Thi
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Resources & File Structure](#resources--file-structure)
+3. [Scripts](#scripts)
 4. [Step-by-Step Setup Guide](#step-by-step-setup-guide)
    - [Step 1: Create Hand Pose Data](#step-1-create-hand-pose-data)
    - [Step 2: Sculpt the Hand Pose](#step-2-sculpt-the-hand-pose)
@@ -18,9 +18,8 @@ A comprehensive guide to the VR hand pose system used in the Savior project. Thi
    - [Step 6: Setup the Animator Controller](#step-6-setup-the-animator-controller)
    - [Step 7: Setup the Hand Visual GameObject](#step-7-setup-the-hand-visual-gameobject)
    - [Step 8: Setup the Grabbable Object](#step-8-setup-the-grabbable-object)
-5. [Script Reference](#script-reference)
-6. [Snap-to-Object Feature](#snap-to-object-feature)
-7. [Tips & Troubleshooting](#tips--troubleshooting)
+5. [Snap-to-Object Feature](#snap-to-object-feature)
+6. [Tips & Troubleshooting](#tips--troubleshooting)
 
 ---
 
@@ -32,7 +31,7 @@ The hand pose system enables per-object custom hand animations in VR. When a pla
 
 - **Hand Pose Data** — A ScriptableObject that stores bone positions and rotations for a specific hand pose.
 - **Hand Pose Editor** — An editor window for saving/loading poses by manipulating the 3D hand model directly in the Scene view.
-- **Hand Pose Mirror** — An editor tool that automatically mirrors a pose from one hand to the other.
+- **Hand Pose Mirror** — An editor tool that automatically mirrors a pose from one hand to the other using rest-pose-relative delta mirroring.
 - **Animator-driven** — All poses are delivered as animation states inside an Animator Controller, blended together using a 2D Blend Tree driven by `grip` and `trigger` input values.
 
 ---
@@ -44,8 +43,8 @@ The hand pose system enables per-object custom hand animations in VR. When a pla
 │                        EDITOR TOOLS                          │
 │                                                              │
 │  ┌─────────────────────┐    ┌──────────────────────────┐     │
-│  │  Hand Pose Editor   │    │   Hand Pose Mirror       │     │
-│  │  (Save/Load poses)  │───▶│   (Left ↔ Right)         │     │
+│  │  HandPoseEditorWindow│   │   HandPoseMirrorWindow   │     │
+│  │  (Save/Load poses)  │──▶│   (Left ↔ Right)         │     │
 │  └─────────┬───────────┘    └──────────┬───────────────┘     │
 │            │                           │                     │
 │            ▼                           ▼                     │
@@ -61,7 +60,7 @@ The hand pose system enables per-object custom hand animations in VR. When a pla
 │                                                              │
 │  ┌──────────────────┐    ┌─────────────────────────────┐     │
 │  │  Animation Clips │    │  Animator Controller        │     │
-│  │  (Left/Right)    │───▶│  Blend Tree + Pose States   │     │
+│  │  (Left/Right)    │──▶│  Blend Tree + Pose States   │     │
 │  └──────────────────┘    └──────────────┬──────────────┘     │
 └─────────────────────────────────────────┼────────────────────┘
                                           │
@@ -71,71 +70,209 @@ The hand pose system enables per-object custom hand animations in VR. When a pla
 │                                                              │
 │  ┌────────────────────┐      ┌──────────────────────────┐    │
 │  │   HandAnimator     │◀────▶│  XRGrabPoseListener      │    │
-│  │ (reads grip/trigger│      │  (triggers pose on grab) │    │
-│  │  input, plays      │      └──────────────────────────┘    │
-│  │  animations)       │                                      │
-│  └────────────────────┘      ┌──────────────────────────┐    │
-│                              │ HandAwareGrabInteractable│    │
-│                              │ (attach transforms,      │    │
-│                              │  snap-to-object)         │    │
-│                              └──────────────────────────┘    │
+│  │ (reads grip/trigger│      │  (triggers pose on grab, │    │
+│  │  input, plays      │      │   hand attach offset,    │    │
+│  │  animations)       │      │   snap-to-object)        │    │
+│  └────────────────────┘      └──────────────────────────┘    │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Resources & File Structure
+## Scripts
 
-### 3D Hand Models
-
-| Asset | Path |
-|---|---|
-| Left Hand Model | `Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/LeftHandAndroidXR.fbx` |
-| Right Hand Model | `Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/RightHandAndroidXR.fbx` |
-
-### Animation Clips
-
-Each pose has a corresponding left and right animation clip. The naming convention is `Left_[PoseName]_XR` / `Right_[PoseName]_XR`.
-
-| Pose | Left Clip | Right Clip |
-|---|---|---|
-| Base (resting) | `Left_Base_XR.anim` | `Right_Base_XR.anim` |
-| Grab | `Left_Grab_XR.anim` | `Right_Grab_XR.anim` |
-| Grip | `Left_Grip.anim` | `Right_Grip.anim` |
-| Pinch | `Left_Pinch_XR.anim` | `Right_Pinch_XR.anim` |
-| Carabiner | `Left_Carabiner_XR.anim` | `Right_Carabiner_XR.anim` |
-
-**Location:** `Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/` (some in `Assets/_MolcaSDK/_VR/3D/Hands/`)
-
-### Animator Controllers
-
-| Controller | Path |
-|---|---|
-| Left Hand | `Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/LeftHand_XR.controller` |
-| Right Hand | `Assets/Samples/XR Hands/1.7.2/HandVisualizer/Models/RightHand_XR.controller` |
-
-### Hand Pose Data Assets
-
-Located at `Assets/_Savior/Scenarios/WAH_Scaffold/ScriptableObjects/HandPoseData/`:
-
-| Pose | Left Hand | Right Hand |
-|---|---|---|
-| Base | `LeftHandBase.asset` | `RightHandBase.asset` |
-| Grab | `LeftHandGrab.asset` | `RightHandGrab.asset` |
-| Grip | `LeftHandGrib.asset` | `RightHandGrib.asset` |
-| Pinch | `LeftHandPinch.asset` | `RightHandPinch.asset` |
-| Carabiner | `LeftHandCarabiner.asset` | `RightHandCarabiner.asset` |
-
-### Scripts
+The entire hand pose system is implemented with only **5 scripts**:
 
 | Script | Path | Purpose |
 |---|---|---|
-| `HandPoseData.cs` | `Assets/_MolcaSDK/_VR/Scripts/Interactions/GrabHandPose/` | ScriptableObject storing bone poses |
-| `HandPoseEditorWindow.cs` | `Assets/_MolcaSDK/_VR/Scripts/Editor/HandPose/` | Editor window for saving/loading poses |
-| `HandPoseMirrorWindow.cs` | `Assets/_MolcaSDK/_VR/Scripts/Editor/HandPose/` | Editor window for mirroring poses L↔R |
-| `HandAnimator.cs` | `Assets/_MolcaSDK/_VR/Scripts/Controller Visual/` | Runtime: reads input, drives hand animations |
-| `XRGrabPoseListener.cs` | `Assets/_MolcaSDK/_VR/Scripts/Interactions/GrabHandPose/` | Runtime: triggers specific pose on grab |
-| `HandAwareGrabInteractable.cs` | `Assets/_MolcaSDK/_VR/Scripts/Interactions/GrabHandPose/` | Runtime: grab interaction with L/R attach & snap-to-object |
+| `HandPoseData.cs` | `Assets/_MolcaSDK/_VR/Scripts/Interactions/GrabHandPose/` | ScriptableObject storing bone names, positions, and rotations for a hand pose |
+| `XRGrabPoseListener.cs` | `Assets/_MolcaSDK/_VR/Scripts/Interactions/GrabHandPose/` | Runtime: triggers hand pose animation on grab, handles hand attach offset for grab positioning, and snap-to-object feature |
+| `HandAnimator.cs` | `Assets/_MolcaSDK/_VR/Scripts/Controller Visual/` | Runtime: reads grip/trigger input, drives hand animations via Animator blend tree, and provides API for custom grab animation playback |
+| `HandPoseEditorWindow.cs` | `Assets/_MolcaSDK/_VR/Scripts/Editor/HandPose/` | Editor: window for saving/loading hand poses to `HandPoseData` ScriptableObjects |
+| `HandPoseMirrorWindow.cs` | `Assets/_MolcaSDK/_VR/Scripts/Editor/HandPose/` | Editor: window for mirroring hand poses from one hand to the other using rest-pose-relative delta computation |
+
+---
+
+### HandPoseData
+
+```csharp
+[CreateAssetMenu(fileName = "New Hand Pose Data", menuName = "Savior/XR/Hand Pose")]
+public class HandPoseData : ScriptableObject, IHandPose
+```
+
+A ScriptableObject that stores a list of `BonePose` entries representing a complete hand pose. Created via **Create → Savior → XR → Hand Pose** in the Project panel. Used by both editor tools (Hand Pose Editor, Hand Pose Mirror) to persist pose data.
+
+Each `BonePose` entry contains:
+
+| Property | Type | Description |
+|---|---|---|
+| `boneName` | `string` | The name of the bone transform (e.g., `L_IndexProximal`) |
+| `localPosition` | `Vector3` | The bone's local position |
+| `localRotation` | `Quaternion` | The bone's local rotation |
+
+Also exposes a read-only `Bones` property via the `IHandPose` interface.
+
+---
+
+### XRGrabPoseListener
+
+```csharp
+[AddComponentMenu("XR/XR Grab Pose Listener")]
+public class XRGrabPoseListener : MonoBehaviour
+```
+
+Attached to the **grabbable object**. A general-purpose VR hand interaction add-on that can be attached to any `XRBaseInteractable`. It listens for `selectEntered` / `selectExited` events and provides **three features**:
+
+#### Feature 1: Hand Pose Animation
+
+Plays a custom grab animation on the correct hand when the object is grabbed, and restores the default blend tree state on release.
+
+| Field | Description |
+|---|---|
+| `leftHandAnimationName` | Animation state name for left hand grab (e.g., `Left_Carabiner_XR`) |
+| `rightHandAnimationName` | Animation state name for right hand grab (e.g., `Right_Carabiner_XR`) |
+
+> [!NOTE]
+> These names must **exactly match** the state names in the Animator Controller. The script uses `CrossFade()` via `HandAnimator` to transition to these states.
+
+#### Feature 2: Hand Attach Offset (Grab Position)
+
+Repositions the grabbed object to align with a hand-specific attach point instead of the default attach. This is implemented using a custom `IXRGrabTransformer` that computes the positional/rotational offset between the default attach transform and the hand-specific attach point.
+
+| Field | Description |
+|---|---|
+| `leftHandAttachTransform` | Attach point for left hand grabs — object offsets to align with this transform |
+| `rightHandAttachTransform` | Attach point for right hand grabs — object offsets to align with this transform |
+
+> [!IMPORTANT]
+> This feature only works when the interactable is an `XRGrabInteractable`. The offset transformer is lazily registered and only instantiated when needed.
+
+#### Feature 3: Snap Hand To Object
+
+Moves the hand visual model to a snap point on the object instead of moving the object to the hand. Supports **two snap point modes**:
+
+**Per-Element Mode** — Each snap point has its own individual left/right position and rotation offsets:
+
+| Field | Description |
+|---|---|
+| `handSnapsToObject` | Toggle to enable snap-to-object mode |
+| `handSnapPoints` | Array of `HandSnapPoint` entries, each with its own snap transform and per-hand offsets |
+| `snapTransitionDuration` | Duration in seconds for smooth snap-in/out transition (default: `0.15`) |
+
+**Shared Mode** — Multiple snap transforms share the same left/right offset values:
+
+| Field | Description |
+|---|---|
+| `sharedSnapGroup` | A `SharedOffsetSnapGroup` containing an array of snap transforms and a single set of shared left/right offsets |
+
+> [!TIP]
+> Use **Per-Element Mode** when each snap point needs different hand placement (e.g., handles at different angles). Use **Shared Mode** when all snap points are identical (e.g., valve ridges around a circumference).
+
+**How snap-to-object works at runtime:**
+
+1. When the player grabs, the script finds the **nearest snap point** across both arrays.
+2. The hand visual smoothly transitions from its controller position to the snap point using `SmoothStep` interpolation.
+3. While attached, `LateUpdate()` continuously locks the hand visual to the snap point — following the object if it rotates or moves.
+4. On release, the hand smoothly transitions back to its original local position/rotation.
+
+**Technical details:**
+- No reparenting — only world-space `position` and `rotation` are set.
+- Scale is never modified — the hand mesh maintains its original proportions.
+- Dual-hand support — each hand is tracked independently via a per-interactor `HandSnapState` dictionary.
+
+---
+
+### HandAnimator
+
+```csharp
+public class HandAnimator : MonoBehaviour
+```
+
+Attached to the **Hand Visual** GameObject. Reads grip/trigger input from the XR controller and drives the Animator's blend tree parameters. Also provides an API for object-specific grab animations.
+
+**Inspector Fields:**
+
+| Field | Value |
+|---|---|
+| `Hand Animator` | Reference to the `Animator` component on the 3D hand model child |
+| `Trigger Param Name` | `trigger` |
+| `Grip Param Name` | `grip` |
+| `Grab Animation Layer` | `0` |
+| `Default State Name` | `Blend Tree` (name of the default blend tree state) |
+| `Transition Duration` | `0.1` (seconds for crossfade) |
+| `Trigger Input` | Bind to the controller's trigger action |
+| `Grip Input` | Bind to the controller's grip action |
+
+**Public API:**
+
+| Method | Description |
+|---|---|
+| `PlayGrabAnimation(string stateName)` | Freezes grip/trigger at 0 and crossfades to the specified animation state. Called by `XRGrabPoseListener`. |
+| `StopGrabAnimation()` | Crossfades back to the default Blend Tree state and resumes normal input-driven animation. |
+| `IsPlayingGrabAnimation` | Property — `true` if a custom grab animation is currently active. |
+| `CurrentGrabAnimation` | Property — name of the currently playing grab animation (null if none). |
+
+**Behavior:**
+- During normal operation, `Update()` reads trigger and grip input values and sets them as float parameters on the Animator.
+- When a custom grab animation is active, grip/trigger are frozen at 0 to prevent the blend tree from interfering with the pose.
+
+---
+
+### HandPoseEditorWindow
+
+```csharp
+public class HandPoseEditorWindow : EditorWindow
+```
+
+Accessible via **Tools → XR → Hand Pose Editor**. Provides a simple interface for saving and loading hand bone poses to/from `HandPoseData` ScriptableObject assets.
+
+**Fields:**
+
+| Field | Description |
+|---|---|
+| `Hand Root` | The root transform of the 3D hand model in the Scene hierarchy |
+| `Pose Data` | A `HandPoseData` ScriptableObject asset to save to or load from |
+
+**Actions:**
+
+| Button | Description |
+|---|---|
+| **Save Pose** | Caches all bone transforms under the hand root and saves their `localPosition` and `localRotation` to the pose data asset |
+| **Load Pose** | Applies saved bone rotations from the pose data back to the hand model (only applies rotation, not position, to preserve skeleton bone lengths) |
+| **Clear Pose** | Clears all stored bone data from the pose data asset |
+
+---
+
+### HandPoseMirrorWindow
+
+```csharp
+public class HandPoseMirrorTool : EditorWindow
+```
+
+Accessible via **Tools → XR → Hand Pose Mirror**. Mirrors a hand pose from one hand model to the other using **rest-pose-relative delta mirroring** — a technique that works regardless of bone axis conventions.
+
+**Fields:**
+
+| Field | Description |
+|---|---|
+| `Source Hand Model` | The source hand model transform (must be in rest/default pose) |
+| `Target Hand Model` | The target hand model transform (must be in rest/default pose) |
+| `Source Pose` | The `HandPoseData` asset containing the pose to mirror |
+| `Target Pose` | An existing `HandPoseData` asset to overwrite with the mirrored result |
+
+**Actions:**
+
+| Button | Description |
+|---|---|
+| **Build Bone Mapping** | Collects bones from both models via depth-first traversal and creates name-to-name pairs. Also captures rest rotations. |
+| **Mirror Pose** | Overwrites the target pose asset with the mirrored bone data |
+| **Create Mirrored Copy** | Creates a new `HandPoseData` asset with the mirrored result (auto-swaps Left/Right in the name) |
+
+**How mirroring works:**
+1. Bone names are mapped via structural (depth-first index) matching between source and target models.
+2. For each bone, the **delta** rotation from the source rest pose is computed: `delta = Inverse(sourceRest) * sourcePose`.
+3. This delta is applied to the target's rest pose: `targetPose = targetRest * delta`.
+4. This produces correct mirroring regardless of bone axis conventions between models.
 
 ---
 
@@ -145,69 +282,53 @@ Located at `Assets/_Savior/Scenarios/WAH_Scaffold/ScriptableObjects/HandPoseData
 
 1. In the **Project** panel, right-click in the desired folder.
 2. Navigate to **Create → Savior → XR → Hand Pose**.
-3. Name the asset descriptively, following the convention: `LeftHand[PoseName]` or `RightHand[PoseName]`.
-   - Example: `LeftHandCarabiner`, `RightHandCarabiner`
+3. Name the asset descriptively: `LeftHand[PoseName]` or `RightHand[PoseName]`.
 
 > [!TIP]
-> You only need to create the pose for **one hand** (left or right). The mirror tool can generate the other hand automatically.
+> You only need to create the pose for **one hand** first. The mirror tool can generate the other automatically.
 
 ---
 
 ### Step 2: Sculpt the Hand Pose
 
-1. Open the **Hand Pose Editor** window: go to **Tools → XR → Hand Pose Editor**.
+1. Open the **Hand Pose Editor**: **Tools → XR → Hand Pose Editor**.
 2. In the editor window:
-   - **Hand Root**: Drag the root transform of the 3D hand model from the Hierarchy (e.g., `Left_Hand_XR`).
-   - **Pose Data**: Drag the `HandPoseData` asset you just created.
-3. In the **Scene View**, select individual bones of the hand model and manually rotate/position them into the desired pose.
-   - Use the **Rotation tool** (shortcut: `E`) for precise bone adjustments.
-   - Each finger has bones: Metacarpal → Proximal → Intermediate → Distal.
-   - Work from the proximal (base) to the distal (tip) for natural-looking curls.
+   - **Hand Root**: Drag the root transform of the 3D hand model from the Hierarchy.
+   - **Pose Data**: Drag the `HandPoseData` asset created in Step 1.
+3. In the **Scene View**, select individual bones and rotate them into the desired pose.
+   - Use the **Rotation tool** (`E`) for precise bone adjustments.
+   - Work from proximal (base) to distal (tip) for natural-looking curls.
 
 > [!IMPORTANT]
-> Make sure the hand pose matches how the hand would naturally grip the target object. Position the object near the hand model in the scene to use as visual reference while sculpting the pose.
+> Position the target object near the hand model in the scene as visual reference while sculpting the pose.
 
 ---
 
 ### Step 3: Save the Pose
 
-1. Once the hand is posed to your liking, click **"Save Pose"** in the Hand Pose Editor window.
-2. The tool records the `localPosition` and `localRotation` of every bone in the hand hierarchy and stores them in the `HandPoseData` asset.
-3. To preview a previously saved pose, click **"Load Pose"** to apply the stored bone data back to the hand model.
+1. Click **"Save Pose"** in the Hand Pose Editor window.
+2. The tool records the `localPosition` and `localRotation` of every bone and stores them in the `HandPoseData` asset.
+3. Use **"Load Pose"** to preview a saved pose (applies rotations only).
 4. Use **"Clear Pose"** to reset the pose data if needed.
 
 ---
 
 ### Step 4: Mirror the Pose
 
-Instead of manually sculpting the same pose for the other hand, use the **Hand Pose Mirror** tool:
-
-1. Open the mirror tool: go to **Tools → XR → Hand Pose Mirror**.
-2. Configure the settings:
-   - **Left → Right** toggle: Check this to mirror from left hand to right hand (or uncheck for R→L).
-   - **Source Pose**: The `HandPoseData` asset you just saved (e.g., `LeftHandCarabiner`).
-   - **Target Pose**: An existing `HandPoseData` asset to overwrite with the mirrored result.
-3. Click **"Mirror Pose"** to overwrite the target asset, or **"Create Mirrored Copy"** to generate a new asset automatically.
-
-**How mirroring works:**
-- Bone names are converted: `L_` prefixes become `R_` (and vice versa), `Left` becomes `Right`.
-- Positions are mirrored across the X-axis (X is negated).
-- Rotations are mirrored by negating the Y and Z quaternion components.
+1. Open the mirror tool: **Tools → XR → Hand Pose Mirror**.
+2. Assign both hand models (source and target) — they **must be in rest/default pose**.
+3. Click **"Build Bone Mapping"** to establish bone pairs and capture rest rotations.
+4. Assign the **Source Pose** and **Target Pose** assets.
+5. Click **"Mirror Pose"** to overwrite the target, or **"Create Mirrored Copy"** to generate a new asset.
 
 ---
 
 ### Step 5: Create Animation Clips
 
-With the pose data saved, create animation clips that the Animator Controller will use at runtime:
-
-1. **Create a new Animation Clip** in the Project panel (Create → Animation).
+1. Create a new **Animation Clip**: Create → Animation.
 2. Name it following the convention: `Left_[PoseName]_XR` / `Right_[PoseName]_XR`.
-3. Open the **Animation** window (Window → Animation → Animation).
-4. Select the 3D hand model in the Hierarchy.
-5. **Load the pose** using the Hand Pose Editor (click "Load Pose" with the correct pose data).
-6. In the Animation window, **add a keyframe at frame 0** that captures all bone positions and rotations.
-   - You should see entries for each bone's Position and Rotation in the curve list.
-   - Each bone line (e.g., `L_IndexMetacarpal : Position`, `L_IndexMetacarpal : Rotation`) will be recorded.
+3. Select the hand model in the Hierarchy and load the pose via the Hand Pose Editor.
+4. In the Animation window, add a **keyframe at frame 0** capturing all bone positions and rotations.
 
 > [!NOTE]
 > A single-frame animation clip is sufficient. The Animator's blend tree handles transitions between poses smoothly.
@@ -216,48 +337,34 @@ With the pose data saved, create animation clips that the Animator Controller wi
 
 ### Step 6: Setup the Animator Controller
 
-The Animator Controller uses a **2D Freeform Cartesian Blend Tree** to blend between base hand poses based on controller input, plus additional states for object-specific poses.
-
 #### 6.1 Blend Tree Configuration
 
-1. Open the Animator Controller (e.g., `RightHand_XR.controller`).
-2. The default state should be a **Blend Tree** with:
-   - **Blend Type**: 2D Freeform Cartesian
-   - **Parameters**: `grip` (X-axis) and `trigger` (Y-axis)
+The Animator Controller uses a **2D Freeform Cartesian Blend Tree** with parameters `grip` (X) and `trigger` (Y):
 
-3. Add motion entries to the blend tree:
+| Motion | Pos X (grip) | Pos Y (trigger) | Changes animation speed |
+|---|---|---|---|
+| `Right_Base_XR` | 0 | 0 | 0 |
+| `Right_Pinch_XR` | 0 | 1 | 1 |
+| `Right_Grip_XR` | 1 | 0 | 1 |
+| `Right_Grip_XR` | 1 | 1 | 1 |
 
-| Motion | Pos X (grip) | Pos Y (trigger) |
-|---|---|---|
-| `Right_Base_XR` | 0 | 0 |
-| `Right_Pinch_XR` | 0 | 1 |
-| `Right_Grip_XR` | 1 | 0 |
-| `Right_Grip_XR` | 1 | 1 |
+#### 6.2 Animator Parameters
 
-> [!NOTE]
-> The position (1,1) also maps to `Grip` because when both grip and trigger are fully pressed, the hand should be in a full grip pose.
+Add these **Float** parameters (case-sensitive):
+- `grip` — Driven by grip button input (0.0 – 1.0)
+- `trigger` — Driven by trigger button input (0.0 – 1.0)
 
-#### 6.2 Add Animator Parameters
-
-Ensure the controller has these **Float** parameters (case-sensitive):
-
-- `grip` — Driven by the grip button input (0.0 to 1.0)
-- `trigger` — Driven by the trigger button input (0.0 to 1.0)
-
-#### 6.3 Add Object-Specific Pose States
+#### 6.3 Object-Specific Pose States
 
 For each custom grab pose:
-
-1. Right-click in the Animator graph → **Create State → Empty**.
-2. Name the state to match the animation clip name (e.g., `Right_Carabiner_XR`).
-3. Assign the corresponding animation clip to the state's **Motion** field.
-4. **Do not create transitions** to/from this state — the `HandAnimator` script handles crossfades programmatically via `CrossFade()`.
+1. Create State → Empty in the Animator graph.
+2. Name it to match the animation clip (e.g., `Right_Carabiner_XR`).
+3. Assign the animation clip to the state's **Motion** field.
+4. **Do not create transitions** — `HandAnimator` handles crossfades via `CrossFade()`.
 
 ---
 
 ### Step 7: Setup the Hand Visual GameObject
-
-The hand visual hierarchy in the scene should be structured as follows:
 
 ```
 XR Origin
@@ -271,186 +378,60 @@ XR Origin
         └── Right_Hand_XR (3D Model)   ◄── Add Animator here
 ```
 
-#### Components to add:
-
-**On the Hand Visual GameObject (e.g., `Left Hand Visual`):**
-
-| Component | Configuration |
-|---|---|
-| **HandAnimator** | See fields below |
-
-`HandAnimator` fields:
-
-| Field | Value |
-|---|---|
-| Hand Animator | Reference to the `Animator` component on the 3D hand model child |
-| Trigger Param Name | `trigger` |
-| Grip Param Name | `grip` |
-| Grab Animation Layer | `0` |
-| Default State Name | `Blend Tree` (name of the default blend tree state) |
-| Transition Duration | `0.1` (seconds for crossfade) |
-| Trigger Input | Bind to the controller's trigger action |
-| Grip Input | Bind to the controller's grip action |
-
-**On the 3D Hand Model GameObject (e.g., `Left_Hand_XR`):**
-
-| Component | Configuration |
-|---|---|
-| **Animator** | Controller = `LeftHand_XR.controller` (or `RightHand_XR.controller`) |
+Add `HandAnimator` to each **Hand Visual** GameObject and configure all fields as described in the [HandAnimator](#handanimator) section.
 
 ---
 
 ### Step 8: Setup the Grabbable Object
 
-For each object that the player can grab, configure the following components:
+Add `XRGrabPoseListener` to any object with an `XRBaseInteractable` component (e.g., `XRGrabInteractable`).
 
-#### 8.1 Create Attach Transform Children
+#### 8.1 Configure Hand Pose Animation
 
-1. Create **two empty child GameObjects** under the grabbable object:
-   - `AttachPoint_Right` — Position and rotate this so the object fits naturally in the right hand.
-   - `AttachPoint_Left` — Position and rotate this for the left hand.
-
-2. To set the correct position:
-   - Place the hand model near the object in the scene.
-   - Adjust the attach point's position and rotation until the object aligns with the hand's grip naturally.
-
-#### 8.2 Add Components to the Grabbable Object
-
-| Component | Purpose |
-|---|---|
-| **HandAwareGrabInteractable** | Replaces the standard `XRGrabInteractable`. Handles left/right attach transforms and optional snap-to-object. |
-| **XRGrabPoseListener** | Triggers the correct hand pose animation when the object is grabbed or released. |
-
-#### 8.3 Configure HandAwareGrabInteractable
+Set the animation state names:
 
 | Field | Value |
 |---|---|
-| Attach Transform | `AttachPoint_Right` (the right hand attach point) |
-| Secondary Attach Transform | `AttachPoint_Left` (the left hand attach point) |
-| Hand Snaps To Object | ☐ Enable if you want the hand model to move to the object (see [Snap-to-Object Feature](#snap-to-object-feature)) |
-| Hand Snap Points | Array of transforms on the object (only used when snap-to-object is enabled) |
-| Snap Transition Duration | `0.15` (seconds for smooth hand movement) |
+| `Left Hand Animation Name` | e.g., `Left_Carabiner_XR` |
+| `Right Hand Animation Name` | e.g., `Right_Carabiner_XR` |
 
-> [!IMPORTANT]
-> The **Attach Transform** field is for the **right hand** and the **Secondary Attach Transform** is for the **left hand**. The script automatically detects which hand is grabbing and uses the correct attach point.
+#### 8.2 Configure Hand Attach Offset (Optional)
 
-#### 8.4 Configure XRGrabPoseListener
+Create child GameObjects as attach points for each hand, then assign them:
 
 | Field | Value |
 |---|---|
-| Left Hand Animation Name | Name of the animation state for the left hand (e.g., `Left_Carabiner_XR`) |
-| Right Hand Animation Name | Name of the animation state for the right hand (e.g., `Right_Carabiner_XR`) |
+| `Left Hand Attach Transform` | Position/rotation for left hand alignment |
+| `Right Hand Attach Transform` | Position/rotation for right hand alignment |
 
-> [!NOTE]
-> These names must **exactly match** the state names in the Animator Controller. The script uses `CrossFade()` to transition to these states when the object is grabbed, and back to the `Blend Tree` default state on release.
+#### 8.3 Configure Snap-to-Object (Optional)
 
----
-
-## Script Reference
-
-### HandPoseData
-
-```csharp
-[CreateAssetMenu(fileName = "New Hand Pose Data", menuName = "Savior/XR/Hand Pose")]
-public class HandPoseData : ScriptableObject, IHandPose
-```
-
-A ScriptableObject that stores a list of `BonePose` entries. Each entry contains:
-
-| Property | Type | Description |
-|---|---|---|
-| `boneName` | `string` | The name of the bone transform (e.g., `L_IndexProximal`) |
-| `localPosition` | `Vector3` | The bone's local position |
-| `localRotation` | `Quaternion` | The bone's local rotation |
-
----
-
-### HandAnimator
-
-```csharp
-public class HandAnimator : MonoBehaviour
-```
-
-Attached to the **Hand Visual** GameObject. Reads grip/trigger input from the XR controller and drives the Animator's blend tree parameters. Also provides an API for object-specific grab animations.
-
-**Public API:**
-
-| Method | Description |
-|---|---|
-| `PlayGrabAnimation(string stateName)` | Transition to a specific animation state (freezes grip/trigger at 0). Called by `XRGrabPoseListener`. |
-| `StopGrabAnimation()` | Return to the default Blend Tree state. Called by `XRGrabPoseListener`. |
-| `IsPlayingGrabAnimation` | Property — `true` if a custom grab animation is currently active. |
-| `CurrentGrabAnimation` | Property — name of the currently playing grab animation (null if none). |
-
----
-
-### XRGrabPoseListener
-
-```csharp
-[RequireComponent(typeof(XRGrabInteractable))]
-public class XRGrabPoseListener : MonoBehaviour
-```
-
-Attached to the **grabbable object**. Listens for `selectEntered` / `selectExited` events and calls `PlayGrabAnimation()` / `StopGrabAnimation()` on the grabbing hand's `HandAnimator`.
-
-**Inspector Fields:**
-
-| Field | Description |
-|---|---|
-| `leftHandAnimationName` | Animation state name for left hand grab |
-| `rightHandAnimationName` | Animation state name for right hand grab |
-
----
-
-### HandAwareGrabInteractable
-
-```csharp
-public class HandAwareGrabInteractable : XRGrabInteractable
-```
-
-Replaces Unity's standard `XRGrabInteractable` with additional features:
-
-1. **Left/Right Attach Transforms** — Automatically uses `AttachTransform` for right hand and `SecondaryAttachTransform` for left hand.
-2. **Snap-to-Object** — Optional feature where the hand model visually moves to the object instead of the object moving to the hand.
-
-**Inspector Fields:**
-
-| Field | Description |
-|---|---|
-| `Hand Snaps To Object` | Toggle to enable snap-to-object mode |
-| `Hand Snap Points` | Array of Transform snap points on the object |
-| `Snap Transition Duration` | Duration of the smooth transition animation (seconds) |
+See the [Snap-to-Object Feature](#snap-to-object-feature) section below.
 
 ---
 
 ## Snap-to-Object Feature
 
-For objects like valves or handles where the hand should move to the object (instead of the object moving to the hand), enable the **Snap-to-Object** feature.
-
-### How It Works
-
-1. When the player grabs the object, the script finds the **nearest snap point** to the grabbing hand.
-2. Object tracking (`trackPosition`, `trackRotation`) is disabled so the object stays in place.
-3. The hand model smoothly transitions from its controller position to the snap point position using world-space position/rotation tracking.
-4. While attached, `LateUpdate()` continuously locks the hand visual to the snap point — following the object if it rotates or moves.
-5. On release, the hand smoothly transitions back to its controller position.
+For objects where the hand should move to the object (instead of the object moving to the hand), enable the snap-to-object feature on `XRGrabPoseListener`.
 
 ### Setup
 
-1. Check **Hand Snaps To Object** on the `HandAwareGrabInteractable` component.
-2. Create multiple empty child GameObjects on the object, positioned where hands should snap to.
-   - For a valve with 8 ridges, create 8 snap points around the circumference.
-   - Position and rotate each snap point to match the desired hand orientation.
-3. Assign all snap point transforms to the **Hand Snap Points** array.
+1. Check **Hand Snaps To Object** on the `XRGrabPoseListener` component.
+2. Choose a snap mode:
+
+**Option A — Per-Element Offsets:**
+- Add entries to the **Hand Snap Points** array.
+- Each entry has its own `snapTransform` and individual left/right position + rotation offsets.
+- Use when each snap point needs unique hand placement.
+
+**Option B — Shared Offsets:**
+- Configure the **Shared Snap Group** field.
+- Add all snap point transforms to the `snapTransforms` array.
+- Set one shared set of left/right position + rotation offsets.
+- Use when all snap points are identical (e.g., equally-spaced valve ridges).
 
 > [!NOTE]
-> When snap-to-object is enabled, the script automatically sets the Select Mode to **Multiple**, allowing both hands to grab and snap to the object simultaneously.
-
-### Technical Details
-
-- **No reparenting** — the hand stays in its original transform hierarchy. Only world-space `position` and `rotation` are set. This avoids mesh distortion from scale differences between parent hierarchies.
-- **Scale is never modified** — the hand mesh maintains its original proportions at all times.
-- **Dual-hand support** — each hand is tracked independently via a per-interactor state dictionary.
+> Both modes can coexist — the script searches both arrays for the nearest snap point. The `snapTransitionDuration` controls the smooth snap-in/out duration.
 
 ---
 
@@ -461,18 +442,16 @@ For objects like valves or handles where the hand should move to the object (ins
 | Issue | Solution |
 |---|---|
 | Hand pose doesn't play when grabbing | Verify the animation state name in `XRGrabPoseListener` exactly matches the state name in the Animator Controller. |
-| Hand snaps to wrong position | Check that the attach transform children are correctly positioned and assigned to the right fields (Attach Transform = right hand, Secondary = left hand). |
-| Hand mesh distorts during snap | Ensure you're using the latest `HandAwareGrabInteractable` which uses world-space tracking instead of reparenting. |
-| Only one hand can grab at a time | The snap-to-object feature auto-sets `selectMode` to Multiple. If not using snap-to-object, manually set Select Mode to Multiple in the Inspector. |
-| Mirror produces wrong pose | Verify the bone naming convention uses `L_` / `R_` prefixes or `Left` / `Right` in the names. |
+| Hand snaps to wrong position | Check the snap point transforms and their per-hand offsets. |
+| Object doesn't align with hand on grab | Set up the `leftHandAttachTransform` / `rightHandAttachTransform` on `XRGrabPoseListener`. |
+| Mirror produces wrong pose | Ensure both hand models are in their **rest/default pose** before building the bone mapping. |
 
 ### Best Practices
 
-- **Start with one hand** — Always create the pose for one hand first, then use the mirror tool. This saves significant time and ensures consistency.
-- **Use caution names** — Name your animation clips and states consistently: `Left_[PoseName]_XR` / `Right_[PoseName]_XR`.
-- **Test both hands** — After mirroring, always test the pose with both left and right hands to verify it looks correct.
-- **Blend tree weight** — If the grip/trigger blend doesn't feel right, adjust the positions of the motions in the 2D blend tree graph.
-- **Transition duration** — The default `0.1s` crossfade works well for most cases. Increase it for slower, more dramatic transitions.
+- **Start with one hand** — Create the pose for one hand first, then use the mirror tool.
+- **Consistent naming** — Name animation clips and states as `Left_[PoseName]_XR` / `Right_[PoseName]_XR`.
+- **Test both hands** — After mirroring, verify the pose with both hands.
+- **Transition duration** — The default `0.1s` crossfade works for most cases. Increase for slower transitions.
 
 ### Adding a New Pose (Quick Checklist)
 
@@ -482,5 +461,7 @@ For objects like valves or handles where the hand should move to the object (ins
 4. ☐ Mirror to the other hand
 5. ☐ Create animation clip with single keyframe
 6. ☐ Add animation state to both Animator Controllers (left & right)
-7. ☐ Set the animation state names in `XRGrabPoseListener` on the target object
-8. ☐ Test with both hands
+7. ☐ Add `XRGrabPoseListener` to the grabbable object and set animation state names
+8. ☐ (Optional) Configure hand attach offsets for grab alignment
+9. ☐ (Optional) Configure snap-to-object with per-element or shared snap points
+10. ☐ Test with both hands
